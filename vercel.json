@@ -1,0 +1,12 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "next build",
+  "devCommand": "next dev",
+  "installCommand": "npm install",
+  "regions": ["iad1"],
+  "env": {
+    "SHAPESINC_API_KEY": {
+      "description": "API key for ShapesInc API integration"
+    }
+  }
+} 
