@@ -1,6 +1,14 @@
 import OpenAI from 'openai';
 import { ENV } from './env';
 
+// Double-check API key (additional safety check)
+const apiKey = ENV.SHAPESINC_API_KEY;
+if (!apiKey && process.env.NODE_ENV === 'production') {
+  console.error('CRITICAL: SHAPESINC_API_KEY is required for API calls in production');
+} else if (apiKey && (typeof apiKey !== 'string' || apiKey.trim() === '')) {
+  console.error('CRITICAL: SHAPESINC_API_KEY must be a non-empty string');
+}
+
 // Initialize the OpenAI-compatible client with Shapes API configuration
 const shapesClient = new OpenAI({
   apiKey: ENV.SHAPESINC_API_KEY || 'placeholder-key-for-development',

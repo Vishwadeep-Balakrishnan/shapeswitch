@@ -32,6 +32,18 @@ export function isEnabled(key: string, defaultValue = false): boolean {
   return ['true', '1', 'yes', 'y'].includes(value);
 }
 
+// Validate SHAPESINC_API_KEY specifically
+const apiKey = process.env.SHAPESINC_API_KEY;
+if (apiKey === undefined) {
+  console.warn('⚠️ WARNING: SHAPESINC_API_KEY environment variable is not set. API calls will use mock data.');
+} else if (typeof apiKey !== 'string') {
+  console.error('🚨 ERROR: SHAPESINC_API_KEY must be a string. Current type:', typeof apiKey);
+} else if (apiKey.trim() === '') {
+  console.warn('⚠️ WARNING: SHAPESINC_API_KEY is empty. API calls will use mock data.');
+} else if (apiKey.includes('placeholder') || apiKey.includes('your_api_key')) {
+  console.warn('⚠️ WARNING: SHAPESINC_API_KEY appears to be a placeholder value. API calls may fail.');
+}
+
 // Common environment variables used across the application
 export const ENV = {
   // API Keys
