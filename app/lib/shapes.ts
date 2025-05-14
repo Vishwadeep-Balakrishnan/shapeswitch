@@ -1,11 +1,17 @@
-interface ChatResponse {
+export interface Message {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+export interface ChatResponse {
   message: string;
   voiceUrl?: string;
 }
 
-interface ChatRequest {
+export interface ChatRequest {
   message: string;
   systemPrompt?: string;
+  shapeId?: string;
 }
 
 export async function chatWithShape(request: ChatRequest): Promise<ChatResponse> {

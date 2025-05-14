@@ -1,6 +1,26 @@
 import OpenAI from 'openai';
 import { ENV } from './env';
 
+// Runtime check for SHAPESINC_API_KEY
+(() => {
+  const apiKey = process.env.SHAPESINC_API_KEY;
+  
+  // Debug logging in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[DEBUG] SHAPESINC_API_KEY type:', typeof apiKey);
+    console.log('[DEBUG] SHAPESINC_API_KEY value:', apiKey ? `${apiKey.substring(0, 3)}...${apiKey.length > 6 ? apiKey.substring(apiKey.length - 3) : ''}` : apiKey);
+  }
+  
+  // Strict validation - throw error if not a non-empty string
+  if (typeof apiKey !== 'string') {
+    throw new Error(`SHAPESINC_API_KEY must be a string, received: ${typeof apiKey}`);
+  }
+  
+  if (apiKey.trim() === '') {
+    throw new Error('SHAPESINC_API_KEY cannot be an empty string');
+  }
+})();
+
 // Double-check API key (additional safety check)
 const apiKey = ENV.SHAPESINC_API_KEY;
 if (!apiKey && process.env.NODE_ENV === 'production') {

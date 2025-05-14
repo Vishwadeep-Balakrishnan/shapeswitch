@@ -2,6 +2,8 @@
  * Utility functions for safely accessing environment variables with fallbacks
  */
 
+import { z } from 'zod';
+
 /**
  * Safely get an environment variable with a fallback value
  * @param key The environment variable key
@@ -34,32 +36,43 @@ export function isEnabled(key: string, defaultValue = false): boolean {
   return ['true', '1', 'yes', 'y'].includes(value);
 }
 
-// Validate SHAPESINC_API_KEY specifically
-const apiKey = process.env.SHAPESINC_API_KEY;
-if (apiKey === undefined) {
-  console.warn('⚠️ WARNING: SHAPESINC_API_KEY environment variable is not set. API calls will use mock data.');
-} else if (typeof apiKey !== 'string') {
-  console.error('🚨 ERROR: SHAPESINC_API_KEY must be a string. Current type:', typeof apiKey);
-} else if (apiKey.trim() === '') {
-  console.warn('⚠️ WARNING: SHAPESINC_API_KEY is empty. API calls will use mock data.');
-} else if (apiKey.includes('placeholder') || apiKey.includes('your_api_key')) {
-  console.warn('⚠️ WARNING: SHAPESINC_API_KEY appears to be a placeholder value. API calls may fail.');
+// Zod schema for environment variables
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  // Required in production – allow empty during local dev for mock APIs
+  SHAPESINC_API_KEY: z.string().optional(),
+  // Optional keys
+  VOICE_API_KEY: z.string().optional(),
+  VOICE_API_ENABLED: z.string().optional(),
+  ANALYTICS_ENABLED: z.string().optional(),
+  SHAPES_API_URL: z.string().url().optional(),
+});
+
+const _env = envSchema.parse(process.env);
+
+// Runtime enforcement for SHAPESINC_API_KEY
+if (_env.NODE_ENV === 'production' && !_env.SHAPESINC_API_KEY) {
+  throw new Error('SHAPESINC_API_KEY environment variable is required in production');
 }
 
-// Common environment variables used across the application
+if (_env.NODE_ENV === 'development') {
+  console.debug('[env] SHAPESINC_API_KEY type:', typeof _env.SHAPESINC_API_KEY);
+  console.debug('[env] SHAPESINC_API_KEY value:', _env.SHAPESINC_API_KEY ? `${_env.SHAPESINC_API_KEY.substring(0, 3)}...` : 'undefined');
+}
+
 export const ENV = {
-  // API Keys
-  SHAPESINC_API_KEY: String(getEnv('SHAPESINC_API_KEY', '', true)),
-  VOICE_API_KEY: String(getEnv('VOICE_API_KEY', '')),
-  
-  // Feature flags
-  VOICE_ENABLED: Boolean(isEnabled('VOICE_API_ENABLED', false)),
-  ANALYTICS_ENABLED: Boolean(isEnabled('ANALYTICS_ENABLED', false)),
-  
-  // API endpoints
-  SHAPES_API_URL: String(getEnv('SHAPES_API_URL', 'https://api.shapes.inc/v1')),
-  
-  // Environment detection
-  IS_PRODUCTION: process.env.NODE_ENV === 'production',
-  IS_DEVELOPMENT: process.env.NODE_ENV === 'development',
-}; 
+  // ——— Keys ———
+  SHAPESINC_API_KEY: _env.SHAPESINC_API_KEY ?? '',
+  VOICE_API_KEY: _env.VOICE_API_KEY ?? '',
+
+  // ——— Flags ———
+  VOICE_ENABLED: ['true', '1', 'yes', 'y'].includes((_env.VOICE_API_ENABLED ?? '').toLowerCase()),
+  ANALYTICS_ENABLED: ['true', '1', 'yes', 'y'].includes((_env.ANALYTICS_ENABLED ?? '').toLowerCase()),
+
+  // ——— Endpoints ———
+  SHAPES_API_URL: _env.SHAPES_API_URL ?? 'https://api.shapes.inc/v1',
+
+  // ——— Env meta ———
+  IS_PRODUCTION: _env.NODE_ENV === 'production',
+  IS_DEVELOPMENT: _env.NODE_ENV === 'development',
+} as const; 

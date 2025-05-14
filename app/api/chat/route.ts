@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 
 // Safely access API key with warning instead of error to prevent build failures
 const API_KEY = process.env.SHAPESINC_API_KEY;
@@ -6,19 +7,20 @@ if (!API_KEY && process.env.NODE_ENV === 'production') {
   console.warn('WARNING: SHAPESINC_API_KEY environment variable is not set in production');
 }
 
+const BodySchema = z.object({
+  message: z.string().min(1),
+  systemPrompt: z.string().optional(),
+  shapeId: z.string().optional(),
+});
+
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { message, systemPrompt, shapeId } = body;
-    
-    // Validate required fields
-    if (!message) {
-      return NextResponse.json(
-        { error: 'Message is required' },
-        { status: 400 }
-      );
+    const body = BodySchema.safeParse(await request.json());
+    if (!body.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: body.error.flatten().fieldErrors }, { status: 400 });
     }
-
+    const { message, systemPrompt, shapeId } = body.data;
+    
     // TODO: Replace with actual AI service integration using process.env.SHAPESINC_API_KEY
     // For now, return mock response with shape-specific customization if provided
     const shapePrefix = shapeId ? `[${shapeId}]: ` : '';

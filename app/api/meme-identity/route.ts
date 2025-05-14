@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+
+const BodySchema = z.object({
+  identityId: z.string().min(1),
+});
 
 export async function POST(request: NextRequest) {
   try {
-    const { identityId } = await request.json();
-
-    if (!identityId) {
-      return NextResponse.json(
-        { error: 'Identity ID is required' },
-        { status: 400 }
-      );
+    const parsed = BodySchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
+    const { identityId } = parsed.data;
 
     // Check API key
     const apiKey = process.env.SHAPESINC_API_KEY;

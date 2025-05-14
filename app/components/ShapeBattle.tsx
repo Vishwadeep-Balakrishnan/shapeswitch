@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useShapeChat } from '../hooks/useShapeChat';
-import { Message, ChatResponse } from '../../lib/shapes';
+import { Message, ChatResponse } from '../lib/shapes';
 import ChatBubble from './ChatBubble';
 
 interface Shape {

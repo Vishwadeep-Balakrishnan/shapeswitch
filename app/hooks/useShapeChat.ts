@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { chatWithShape, ChatRequest, ChatResponse } from '../../lib/shapes';
+import { chatWithShape, ChatRequest, ChatResponse } from '../lib/shapes';
 import { toast } from 'sonner';
 
 interface Message {
