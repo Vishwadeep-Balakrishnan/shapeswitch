@@ -1,27 +1,10 @@
 import OpenAI from 'openai';
-
-// Validate environment variables
-const SHAPES_API_KEY = process.env.SHAPES_API_KEY;
-const SHAPES_API_BASE_URL = process.env.SHAPES_API_BASE_URL;
-
-if (!SHAPES_API_KEY) {
-  throw new Error(
-    'Missing SHAPES_API_KEY environment variable. ' +
-    'Please rename env.dev to .env.local and set your API key.'
-  );
-}
-
-if (!SHAPES_API_BASE_URL) {
-  throw new Error(
-    'Missing SHAPES_API_BASE_URL environment variable. ' +
-    'Please rename env.dev to .env.local and ensure the base URL is set.'
-  );
-}
+import { ENV } from './env';
 
 // Initialize the OpenAI-compatible client with Shapes API configuration
 const shapesClient = new OpenAI({
-  apiKey: SHAPES_API_KEY,
-  baseURL: SHAPES_API_BASE_URL,
+  apiKey: ENV.SHAPESINC_API_KEY || 'placeholder-key-for-development',
+  baseURL: ENV.SHAPES_API_URL,
 });
 
 export interface Message {
@@ -29,46 +12,89 @@ export interface Message {
   content: string;
 }
 
+export interface ChatRequest {
+  message: string;
+  systemPrompt?: string;
+  shapeId?: string; // Optional shape identifier
+}
+
+export interface ChatResponse {
+  message: string;
+  voiceUrl?: string;
+}
+
 /**
- * Send messages to a specific shape and get their response
- * @param shapeUsername The username/identifier of the shape to chat with
- * @param messages Array of messages in the conversation
- * @returns The first message from the shape's response
+ * Send a message to a shape and get its response
  */
-export async function chatWithShape(shapeUsername: string, messages: Message[]) {
+export async function chatWithShape(request: ChatRequest): Promise<ChatResponse> {
   try {
-    // Validate inputs
-    if (!shapeUsername) {
-      throw new Error('Shape username is required');
-    }
-    
-    if (!Array.isArray(messages) || messages.length === 0) {
-      throw new Error('At least one message is required');
+    // Validate required fields
+    if (!request.message) {
+      throw new Error('Message is required');
     }
 
-    // Add shape-specific system message
-    const conversationWithShape = [
+    // In development or if API key is missing, return a mock response
+    if (!ENV.SHAPESINC_API_KEY || ENV.IS_DEVELOPMENT) {
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
+      
+      // If in development, add some randomness to make testing more interesting
+      const responses = [
+        `This is a mock response to: "${request.message}"`,
+        `Interesting point about "${request.message.slice(0, 20)}..." - I'd need to think more about that.`,
+        `As an AI shape, I find "${request.message.slice(0, 15)}..." to be quite fascinating!`, 
+        `Let me respond to "${request.message.slice(0, 10)}..." with some careful consideration.`
+      ];
+      
+      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+      
+      return {
+        message: request.shapeId ? `[${request.shapeId}]: ${randomResponse}` : randomResponse,
+        voiceUrl: ENV.VOICE_ENABLED ? 'mock-voice-url' : undefined
+      };
+    }
+
+    // Prepare messages for the API call
+    const messages = [
       {
-        role: 'system',
-        content: `You are now chatting with the ${shapeUsername} shape. Maintain this personality throughout the conversation.`
+        role: 'system' as const,
+        content: request.systemPrompt || 'You are a helpful assistant.'
       },
-      ...messages
+      {
+        role: 'user' as const, 
+        content: request.message
+      }
     ];
 
+    // Add optional shape ID to system prompt if provided
+    if (request.shapeId) {
+      messages[0].content = `You are the ${request.shapeId} shape. ${messages[0].content}`;
+    }
+
+    // Make API call
     const response = await shapesClient.chat.completions.create({
-      model: shapeUsername, // Use the shape username as the model identifier
-      messages: conversationWithShape,
+      model: request.shapeId || 'shapes-default', // Use shape ID as model if provided
+      messages,
       temperature: 0.7,
       max_tokens: 150,
     });
 
-    // Return the first message content from the response
+    // Validate response
     const messageContent = response.choices[0]?.message?.content;
     if (!messageContent) {
       throw new Error('No response received from the shape');
     }
 
-    return messageContent;
+    // Generate voice URL if voice is enabled
+    let voiceUrl: string | undefined = undefined;
+    if (ENV.VOICE_ENABLED && ENV.VOICE_API_KEY) {
+      // TODO: Implement actual voice API call
+      voiceUrl = undefined; // Would be populated by the actual API
+    }
+
+    return {
+      message: messageContent,
+      voiceUrl
+    };
   } catch (error) {
     console.error('Error chatting with shape:', error);
     throw error instanceof Error 

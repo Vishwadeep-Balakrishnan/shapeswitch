@@ -1,45 +1,55 @@
-import { useState, useCallback } from 'react';
-import { chatWithShape, Message } from '@/lib/shapes';
+import { useState } from 'react';
+import { chatWithShape, ChatRequest, ChatResponse } from '../../lib/shapes';
+import { toast } from 'sonner';
 
-interface UseShapeChatResult {
-  response: string | null;
-  isLoading: boolean;
-  error: Error | null;
-  sendMessage: (messages: Message[]) => Promise<void>;
-  reset: () => void;
+interface Message {
+  role: 'user' | 'system' | 'assistant';
+  content: string;
 }
 
-export function useShapeChat(shapeUsername: string): UseShapeChatResult {
-  const [response, setResponse] = useState<string | null>(null);
+export function useShapeChat(shapeId: string) {
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [response, setResponse] = useState<ChatResponse | null>(null);
 
-  const sendMessage = useCallback(async (messages: Message[]) => {
+  const sendMessage = async (messages: Message[]): Promise<ChatResponse> => {
+    setIsLoading(true);
+    setError(null);
+
     try {
-      setIsLoading(true);
-      setError(null);
+      // Extract the message content from the last message
+      const userMessage = messages[messages.length - 1].content;
       
-      const shapeResponse = await chatWithShape(shapeUsername, messages);
-      setResponse(shapeResponse);
+      // Find a system message if available
+      const systemPrompt = messages.find(m => m.role === 'system')?.content;
+      
+      // Send the message to the API with the shape ID
+      const responseData = await chatWithShape({
+        message: userMessage,
+        systemPrompt,
+        shapeId // Include the shape ID in the request
+      });
+
+      setResponse(responseData);
+      return responseData;
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to chat with shape'));
-      setResponse(null);
+      // Create a friendly error message for display
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
+      setError(errorMessage);
+      
+      // Show a toast for better user feedback
+      toast.error(errorMessage);
+      
+      throw err;
     } finally {
       setIsLoading(false);
     }
-  }, [shapeUsername]);
-
-  const reset = useCallback(() => {
-    setResponse(null);
-    setError(null);
-    setIsLoading(false);
-  }, []);
+  };
 
   return {
     response,
-    isLoading,
-    error,
     sendMessage,
-    reset
+    isLoading,
+    error
   };
 } 

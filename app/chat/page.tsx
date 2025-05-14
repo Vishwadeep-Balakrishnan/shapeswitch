@@ -1,154 +1,121 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { Message } from '@/lib/shapes';
-import { useShapeChat } from '@/app/hooks/useShapeChat';
-import ChatBubble from '@/app/components/ChatBubble';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { motion } from 'framer-motion';
+import LoadingSpinner from '../components/LoadingSpinner';
 
-// Define our two shapes
-const SHAPE_1 = {
-  username: 'tech-bro-bot',
-  avatar: '🤖',
-  name: 'Tech Bro'
-};
-
-const SHAPE_2 = {
-  username: 'drama-queen',
-  avatar: '🎭',
-  name: 'Drama Queen'
-};
-
-interface ChatMessage {
+interface Message {
+  id: string;
   content: string;
-  isUser: boolean;
-  timestamp: string;
-  shapeName: string;
-  avatar: string;
+  role: 'user' | 'assistant';
+  shape?: string;
 }
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [inputText, setInputText] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  
-  // Initialize hooks for both shapes
-  const shape1Chat = useShapeChat(SHAPE_1.username);
-  const shape2Chat = useShapeChat(SHAPE_2.username);
-
-  // Auto-scroll to bottom when new messages arrive
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim() || shape1Chat.isLoading || shape2Chat.isLoading) return;
+    if (!input.trim()) return;
 
-    // Add user message
-    const userMessage: ChatMessage = {
-      content: inputText,
-      isUser: true,
-      timestamp: new Date().toLocaleTimeString(),
-      shapeName: 'You',
-      avatar: '👤'
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      content: input.trim(),
+      role: 'user'
     };
-    setMessages(prev => [...prev, userMessage]);
-    setInputText('');
 
-    // Prepare message for the shapes
-    const messageForShapes: Message[] = [
-      { role: 'user', content: inputText }
-    ];
+    setMessages(prev => [...prev, newMessage]);
+    setInput('');
+    setIsLoading(true);
 
     try {
-      // Send messages to both shapes simultaneously
-      await Promise.all([
-        shape1Chat.sendMessage(messageForShapes),
-        shape2Chat.sendMessage(messageForShapes)
-      ]);
-
-      // Add responses if they exist
-      if (shape1Chat.response) {
-        setMessages(prev => [...prev, {
-          content: shape1Chat.response!,
-          isUser: false,
-          timestamp: new Date().toLocaleTimeString(),
-          shapeName: SHAPE_1.name,
-          avatar: SHAPE_1.avatar
-        }]);
-      }
-
-      if (shape2Chat.response) {
-        setMessages(prev => [...prev, {
-          content: shape2Chat.response!,
-          isUser: false,
-          timestamp: new Date().toLocaleTimeString(),
-          shapeName: SHAPE_2.name,
-          avatar: SHAPE_2.avatar
-        }]);
-      }
+      // TODO: Implement API call
+      const response: Message = {
+        id: (Date.now() + 1).toString(),
+        content: 'This is a placeholder response. API integration coming soon!',
+        role: 'assistant',
+        shape: 'Friendly Shape'
+      };
+      
+      setTimeout(() => {
+        setMessages(prev => [...prev, response]);
+        setIsLoading(false);
+      }, 1000);
     } catch (error) {
-      console.error('Error getting responses:', error);
+      toast.error('Failed to get response');
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
-      {/* Chat Header */}
-      <div className="border-b border-gray-800 p-4 backdrop-blur-sm bg-black/30">
-        <h1 className="text-xl font-bold text-center">
-          Shape Chat: {SHAPE_1.name} vs {SHAPE_2.name}
-        </h1>
-      </div>
+    <main className="container mx-auto px-4 py-24">
+      <div className="max-w-3xl mx-auto space-y-8">
+        <div className="text-center space-y-4">
+          <h1 className="text-4xl md:text-5xl font-display bg-gradient-to-r from-purple-400 to-pink-600 text-transparent bg-clip-text">
+            Chat with Shapes
+          </h1>
+          <p className="text-gray-400">
+            Have a conversation with our AI-powered shapes
+          </p>
+        </div>
 
-      {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((msg, index) => (
-          <ChatBubble
-            key={index}
-            message={msg.content}
-            isUser={msg.isUser}
-            avatar={msg.avatar}
-            shapeName={msg.shapeName}
-            timestamp={msg.timestamp}
-          />
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
+        {/* Chat Messages */}
+        <div className="space-y-4 min-h-[400px] max-h-[600px] overflow-y-auto p-4 bg-black/30 rounded-xl border border-white/10">
+          {messages.map((message) => (
+            <motion.div
+              key={message.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-[80%] p-4 rounded-xl ${
+                  message.role === 'user'
+                    ? 'bg-purple-500/20 text-purple-100'
+                    : 'bg-blue-500/20 text-blue-100'
+                }`}
+              >
+                {message.role === 'assistant' && (
+                  <div className="text-sm text-gray-400 mb-1">{message.shape}</div>
+                )}
+                <p>{message.content}</p>
+              </div>
+            </motion.div>
+          ))}
+          {isLoading && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex justify-start"
+            >
+              <div className="bg-blue-500/20 rounded-xl p-4">
+                <LoadingSpinner />
+              </div>
+            </motion.div>
+          )}
+        </div>
 
-      {/* Input Form */}
-      <form onSubmit={handleSubmit} className="border-t border-gray-800 p-4 backdrop-blur-sm bg-black/30">
-        <div className="max-w-4xl mx-auto flex gap-4">
+        {/* Input Form */}
+        <form onSubmit={handleSubmit} className="flex gap-4">
           <input
             type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
             placeholder="Type your message..."
-            className="flex-1 px-4 py-2 rounded-lg bg-black/30 border border-gray-800 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
-            disabled={shape1Chat.isLoading || shape2Chat.isLoading}
+            className="flex-1 px-4 py-3 bg-black/30 border border-white/10 rounded-xl focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all text-white placeholder-gray-500"
           />
           <button
             type="submit"
-            disabled={shape1Chat.isLoading || shape2Chat.isLoading || !inputText.trim()}
-            className={`
-              px-6 py-2 rounded-lg
-              bg-gradient-to-r from-blue-500 to-purple-600
-              text-white font-medium
-              transition-all duration-300
-              ${(shape1Chat.isLoading || shape2Chat.isLoading || !inputText.trim())
-                ? 'opacity-50 cursor-not-allowed'
-                : 'hover:opacity-90 active:scale-[0.98]'
-              }
-            `}
+            disabled={isLoading || !input.trim()}
+            className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl font-medium text-white hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {shape1Chat.isLoading || shape2Chat.isLoading ? 'Sending...' : 'Send'}
+            Send
           </button>
-        </div>
-      </form>
-    </div>
+        </form>
+      </div>
+    </main>
   );
 } 

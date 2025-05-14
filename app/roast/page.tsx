@@ -1,112 +1,101 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { motion } from 'framer-motion';
+import LoadingSpinner from '../components/LoadingSpinner';
 import RoastCard from '../components/RoastCard';
-import { chatWithShape } from '../lib/shapes';
-import html2canvas from 'html2canvas';
+
+interface RoastResponse {
+  roast: string;
+  voiceUrl?: string;
+  mirrorScore: number;
+}
 
 export default function RoastPage() {
-  const [loading, setLoading] = useState(false);
-  const [downloading, setDownloading] = useState(false);
-  const [roastResponse, setRoastResponse] = useState<{
-    text: string;
-    voiceUrl?: string;
-    mirrorScore?: number;
-  } | null>(null);
-  
-  const roastCardRef = useRef<HTMLDivElement>(null);
+  const [target, setTarget] = useState('');
+  const [roastResponse, setRoastResponse] = useState<RoastResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleRoastRequest = async () => {
-    setLoading(true);
-    try {
-      const response = await chatWithShape({
-        message: "Roast me based on my personality. Be brutally honest but funny.",
-        systemPrompt: "You are a witty roast master AI. Your roasts are creative, clever, and hit close to home while still being entertaining. You specialize in personality-based roasts that reveal uncomfortable truths in a humorous way."
-      });
-
-      // For now, we'll generate a random mirror score between 1-5
-      const mockMirrorScore = Math.floor(Math.random() * 5) + 1;
-
-      setRoastResponse({
-        text: response.message,
-        voiceUrl: response.voiceUrl,
-        mirrorScore: mockMirrorScore
-      });
-    } catch (error) {
-      console.error('Error getting roast:', error);
-    } finally {
-      setLoading(false);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!target.trim()) {
+      toast.error('Please enter a roast target');
+      return;
     }
-  };
 
-  const handleDownloadImage = async () => {
-    if (!roastCardRef.current) return;
-    
-    setDownloading(true);
+    setIsLoading(true);
     try {
-      const canvas = await html2canvas(roastCardRef.current, {
-        backgroundColor: '#000000',
-        scale: 2, // Higher resolution
-        logging: false,
-        useCORS: true
+      // TODO: Implement API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Mock response
+      setRoastResponse({
+        roast: "Your code is like a maze - confusing, poorly designed, and full of dead ends. Even a quantum computer would get lost trying to understand your logic!",
+        mirrorScore: 8.5,
+        voiceUrl: undefined // Will be implemented with actual API
       });
-
-      // Create download link
-      const link = document.createElement('a');
-      link.download = 'shapeswitch-roast.png';
-      link.href = canvas.toDataURL('image/png');
-      link.click();
     } catch (error) {
-      console.error('Error generating image:', error);
+      toast.error('Failed to generate roast');
+      console.error(error);
     } finally {
-      setDownloading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <main className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <main className="container mx-auto px-4 py-24">
+      <div className="max-w-3xl mx-auto space-y-8">
         <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-            Get Roasted
+          <h1 className="text-4xl md:text-5xl font-display bg-gradient-to-r from-purple-400 to-pink-600 text-transparent bg-clip-text">
+            AI Roast Battle
           </h1>
           <p className="text-gray-400">
-            Ready to face the brutal honesty of an AI roast master?
+            Get roasted by our AI with style and wit
           </p>
         </div>
 
-        <div className="flex justify-center">
-          <button
-            onClick={handleRoastRequest}
-            disabled={loading}
-            className="px-6 py-3 bg-gradient-to-r from-blue-500/20 to-purple-600/20 rounded-lg border border-gray-700 hover:border-gray-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Preparing Roast...' : 'Roast Me'}
-          </button>
-        </div>
-
-        {roastResponse && (
-          <div className="space-y-4">
-            <div className="mt-8">
-              <RoastCard
-                ref={roastCardRef}
-                roast={roastResponse.text}
-                voiceUrl={roastResponse.voiceUrl}
-                mirrorScore={roastResponse.mirrorScore}
-              />
-            </div>
-            
-            <div className="flex justify-center">
-              <button
-                onClick={handleDownloadImage}
-                disabled={downloading}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500/20 to-blue-600/20 rounded-lg border border-gray-700 hover:border-gray-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <span className="text-lg">📸</span>
-                <span>{downloading ? 'Generating...' : 'Download as Image'}</span>
-              </button>
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <label htmlFor="target" className="block text-sm font-medium text-gray-400">
+              Who or what should we roast?
+            </label>
+            <input
+              id="target"
+              type="text"
+              value={target}
+              onChange={(e) => setTarget(e.target.value)}
+              placeholder="Enter your roast target..."
+              className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all text-white placeholder-gray-500"
+            />
           </div>
+
+          <button
+            type="submit"
+            disabled={isLoading || !target.trim()}
+            className="w-full py-3 px-6 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl font-medium text-white hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? 'Generating Roast...' : 'Generate Roast'}
+          </button>
+        </form>
+
+        {isLoading && (
+          <div className="flex justify-center">
+            <LoadingSpinner />
+          </div>
+        )}
+
+        {roastResponse && !isLoading && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <RoastCard
+              roast={roastResponse.roast}
+              voiceUrl={roastResponse.voiceUrl}
+              mirrorScore={roastResponse.mirrorScore}
+            />
+          </motion.div>
         )}
       </div>
     </main>

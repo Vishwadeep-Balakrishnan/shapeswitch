@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Fredoka } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import { ShapeProvider } from './context/ShapeContext';
+import Toast from './components/Toast';
 
 const inter = Inter({ subsets: ["latin"] });
+const fredoka = Fredoka({ 
+  subsets: ['latin'],
+  variable: '--font-fredoka'
+});
 
 export const metadata: Metadata = {
   title: "ShapeSwitch - AI Identity Transformations",
@@ -25,8 +30,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} min-h-screen bg-gradient-to-br from-gray-900 to-black text-white antialiased`}>
+    <html lang="en" className={`${inter.className} ${fredoka.variable} min-h-screen bg-gradient-to-br from-gray-900 to-black text-white antialiased`}>
+      <body className={`${inter.className} ${fredoka.variable} min-h-screen bg-gradient-to-br from-gray-900 to-black text-white`}>
         <ShapeProvider>
           <div className="min-h-screen flex flex-col">
             <header className="border-b border-gray-800 backdrop-blur-sm bg-black/30 sticky top-0 z-50">
@@ -66,6 +71,8 @@ export default function RootLayout({
               </div>
             </footer>
           </div>
+          {/* Toast component for global notifications - use 'toast.success()' or 'toast.error()' from any component */}
+          <Toast />
         </ShapeProvider>
       </body>
     </html>
