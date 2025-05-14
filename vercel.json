@@ -5,6 +5,8 @@
   "installCommand": "npm install",
   "regions": ["iad1"],
   "env": {
-    "SHAPESINC_API_KEY": "@shapesinc_api_key"
+    "SHAPESINC_API_KEY": "sk-xxx-your-real-key"
   }
 } 
+
+    
