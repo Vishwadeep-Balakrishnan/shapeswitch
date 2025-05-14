@@ -11,14 +11,16 @@
 export function getEnv(key: string, fallback = '', required = false): string {
   const value = process.env[key];
   
-  if (!value) {
+  // Force value to be a string (or fallback if null/undefined)
+  if (value === undefined || value === null) {
     if (required && process.env.NODE_ENV === 'production') {
       console.warn(`WARNING: Required environment variable ${key} is not set in production`);
     }
-    return fallback;
+    return String(fallback);
   }
   
-  return value;
+  // Ensure it's always returned as a string, even if somehow it's not
+  return String(value);
 }
 
 /**
@@ -47,15 +49,15 @@ if (apiKey === undefined) {
 // Common environment variables used across the application
 export const ENV = {
   // API Keys
-  SHAPESINC_API_KEY: getEnv('SHAPESINC_API_KEY', '', true),
-  VOICE_API_KEY: getEnv('VOICE_API_KEY', ''),
+  SHAPESINC_API_KEY: String(getEnv('SHAPESINC_API_KEY', '', true)),
+  VOICE_API_KEY: String(getEnv('VOICE_API_KEY', '')),
   
   // Feature flags
-  VOICE_ENABLED: isEnabled('VOICE_API_ENABLED', false),
-  ANALYTICS_ENABLED: isEnabled('ANALYTICS_ENABLED', false),
+  VOICE_ENABLED: Boolean(isEnabled('VOICE_API_ENABLED', false)),
+  ANALYTICS_ENABLED: Boolean(isEnabled('ANALYTICS_ENABLED', false)),
   
   // API endpoints
-  SHAPES_API_URL: getEnv('SHAPES_API_URL', 'https://api.shapes.inc/v1'),
+  SHAPES_API_URL: String(getEnv('SHAPES_API_URL', 'https://api.shapes.inc/v1')),
   
   // Environment detection
   IS_PRODUCTION: process.env.NODE_ENV === 'production',

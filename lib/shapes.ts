@@ -11,7 +11,9 @@ if (!apiKey && process.env.NODE_ENV === 'production') {
 
 // Initialize the OpenAI-compatible client with Shapes API configuration
 const shapesClient = new OpenAI({
-  apiKey: ENV.SHAPESINC_API_KEY || 'placeholder-key-for-development',
+  apiKey: typeof ENV.SHAPESINC_API_KEY === 'string' && ENV.SHAPESINC_API_KEY.trim() !== '' 
+    ? ENV.SHAPESINC_API_KEY 
+    : 'placeholder-key-for-development',
   baseURL: ENV.SHAPES_API_URL,
 });
 
